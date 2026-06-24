@@ -47,12 +47,15 @@ export async function getSpaceById(req, res) {
 }
 
 export async function createSpace(req, res) {
-  const { name, description, capacity, rules, priceSocio, priceNaoSocio, imageUrls } = req.body;
+  const { name, description, capacity, rules, priceSocio, priceNaoSocio } = req.body;
 
   try {
     if (!name || !description || capacity === undefined || priceSocio === undefined || priceNaoSocio === undefined) {
       return res.status(400).json({ error: 'Os campos nome, descrição, capacidade, preço sócio e preço não sócio são obrigatórios.' });
     }
+
+    // Processar os arquivos carregados
+    const uploadedUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
 
     const space = await prisma.space.create({
       data: {
@@ -62,7 +65,7 @@ export async function createSpace(req, res) {
         rules,
         priceSocio: Number(priceSocio),
         priceNaoSocio: Number(priceNaoSocio),
-        imageUrls: imageUrls ? JSON.stringify(imageUrls) : '[]',
+        imageUrls: JSON.stringify(uploadedUrls),
         isActive: true
       }
     });
@@ -82,7 +85,7 @@ export async function createSpace(req, res) {
 
 export async function updateSpace(req, res) {
   const { id } = req.params;
-  const { name, description, capacity, rules, priceSocio, priceNaoSocio, imageUrls, isActive } = req.body;
+  const { name, description, capacity, rules, priceSocio, priceNaoSocio, isActive } = req.body;
 
   try {
     const space = await prisma.space.findUnique({
@@ -93,6 +96,23 @@ export async function updateSpace(req, res) {
       return res.status(404).json({ error: 'Local não encontrado.' });
     }
 
+    // Processar fotos: manter as antigas e adicionar as novas
+    let existingImages = [];
+    if (req.body.keepImages) {
+      try {
+        existingImages = typeof req.body.keepImages === 'string'
+          ? JSON.parse(req.body.keepImages)
+          : req.body.keepImages;
+      } catch (e) {
+        existingImages = [];
+      }
+    } else {
+      existingImages = JSON.parse(space.imageUrls || '[]');
+    }
+
+    const newUploadedUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+    const finalImageUrls = [...existingImages, ...newUploadedUrls];
+
     const updatedSpace = await prisma.space.update({
       where: { id: Number(id) },
       data: {
@@ -102,7 +122,7 @@ export async function updateSpace(req, res) {
         rules: rules !== undefined ? rules : space.rules,
         priceSocio: priceSocio !== undefined ? Number(priceSocio) : space.priceSocio,
         priceNaoSocio: priceNaoSocio !== undefined ? Number(priceNaoSocio) : space.priceNaoSocio,
-        imageUrls: imageUrls !== undefined ? JSON.stringify(imageUrls) : space.imageUrls,
+        imageUrls: JSON.stringify(finalImageUrls),
         isActive: isActive !== undefined ? Boolean(isActive) : space.isActive
       }
     });

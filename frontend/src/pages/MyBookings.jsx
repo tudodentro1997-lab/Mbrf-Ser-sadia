@@ -115,13 +115,13 @@ export default function MyBookings({ token, user }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {bookings.map((booking) => (
-            <div key={booking.id} className="card" style={{
+            <div key={booking.id} className="card booking-card" style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
               padding: '24px',
               position: 'relative'
-            }} className="booking-card">
+            }}>
               
               {/* Top info */}
               <div style={{

@@ -20,7 +20,8 @@ export default function AdminDashboard({ token, user }) {
   const [spaceRules, setSpaceRules] = useState('');
   const [spacePriceSocio, setSpacePriceSocio] = useState(0);
   const [spacePriceNao, setSpacePriceNao] = useState(100);
-  const [spaceImages, setSpaceImages] = useState('');
+  const [spaceFiles, setSpaceFiles] = useState([]);
+  const [existingSpaceImages, setExistingSpaceImages] = useState([]);
 
   // Estados de cadastro de sócio
   const [socioName, setSocioName] = useState('');
@@ -139,19 +140,18 @@ export default function AdminDashboard({ token, user }) {
     e.preventDefault();
     setLoading(true);
 
-    const imageUrlsArray = spaceImages
-      ? spaceImages.split(',').map(url => url.trim()).filter(url => url !== '')
-      : [];
+    const formData = new FormData();
+    formData.append('name', spaceName);
+    formData.append('description', spaceDesc);
+    formData.append('capacity', Number(spaceCap));
+    formData.append('rules', spaceRules);
+    formData.append('priceSocio', Number(spacePriceSocio));
+    formData.append('priceNaoSocio', Number(spacePriceNao));
+    formData.append('keepImages', JSON.stringify(existingSpaceImages));
 
-    const payload = {
-      name: spaceName,
-      description: spaceDesc,
-      capacity: Number(spaceCap),
-      rules: spaceRules,
-      priceSocio: Number(spacePriceSocio),
-      priceNaoSocio: Number(spacePriceNao),
-      imageUrls: imageUrlsArray
-    };
+    for (let i = 0; i < spaceFiles.length; i++) {
+      formData.append('images', spaceFiles[i]);
+    }
 
     try {
       let response;
@@ -159,19 +159,17 @@ export default function AdminDashboard({ token, user }) {
         response = await fetch(`/api/spaces/${editingSpace.id}`, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(payload)
+          body: formData
         });
       } else {
         response = await fetch('/api/spaces', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(payload)
+          body: formData
         });
       }
 
@@ -218,12 +216,9 @@ export default function AdminDashboard({ token, user }) {
     setSpaceRules(space.rules || '');
     setSpacePriceSocio(space.priceSocio);
     setSpacePriceNao(space.priceNaoSocio);
-    try {
-      const urls = Array.isArray(space.imageUrls) ? space.imageUrls : JSON.parse(space.imageUrls || '[]');
-      setSpaceImages(urls.join(', '));
-    } catch (e) {
-      setSpaceImages(space.imageUrls || '');
-    }
+    const urls = Array.isArray(space.imageUrls) ? space.imageUrls : [];
+    setExistingSpaceImages(urls);
+    setSpaceFiles([]);
   };
 
   const resetSpaceForm = () => {
@@ -234,7 +229,8 @@ export default function AdminDashboard({ token, user }) {
     setSpaceRules('');
     setSpacePriceSocio(0);
     setSpacePriceNao(100);
-    setSpaceImages('');
+    setSpaceFiles([]);
+    setExistingSpaceImages([]);
   };
 
   // Cadastrar Sócio Individual
@@ -664,13 +660,77 @@ export default function AdminDashboard({ token, user }) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>URLs das Imagens / Fotos (separadas por vírgula)</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Fotos do Local (Arquivos de Imagem)</label>
+                
+                {/* Imagens que já estão no banco de dados */}
+                {editingSpace && existingSpaceImages.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Fotos atuais (Clique em X para remover):</span>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {existingSpaceImages.map((url, idx) => (
+                        <div key={idx} style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                          <img 
+                            src={url} 
+                            alt="Preview" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setExistingSpaceImages(prev => prev.filter(item => item !== url))}
+                            style={{
+                              position: 'absolute',
+                              top: '2px',
+                              right: '2px',
+                              backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '16px',
+                              height: '16px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              fontSize: '10px',
+                              lineHeight: 1
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selecionar novos arquivos locais */}
                 <input 
-                  type="text" value={spaceImages} onChange={(e) => setSpaceImages(e.target.value)}
-                  placeholder="Ex: https://dominio.com/foto1.jpg, https://dominio.com/foto2.jpg"
-                  style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  onChange={(e) => setSpaceFiles(Array.from(e.target.files || []))}
+                  style={{
+                    padding: '8px',
+                    border: '1px dashed var(--border-color)',
+                    borderRadius: '6px',
+                    backgroundColor: 'var(--bg-primary)',
+                    cursor: 'pointer',
+                    width: '100%',
+                    fontSize: '0.8rem'
+                  }}
                 />
+
+                {/* Lista de novos arquivos selecionados */}
+                {spaceFiles.length > 0 && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--success)' }}>
+                    {spaceFiles.length} arquivo(s) selecionado(s):
+                    <ul style={{ paddingLeft: '14px', marginTop: '2px' }}>
+                      {spaceFiles.map((file, idx) => <li key={idx}>{file.name}</li>)}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
