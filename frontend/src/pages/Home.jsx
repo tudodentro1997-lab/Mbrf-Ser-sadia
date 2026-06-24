@@ -95,17 +95,23 @@ export default function Home({ token, user, onNavigate }) {
                 padding: '0px',
                 overflow: 'hidden'
               }}>
-                {/* Mock da Foto do local com um Gradiente bonito */}
+                {/* Foto do local ou Gradiente de Fallback */}
                 <div style={{
                   height: '180px',
-                  background: 'linear-gradient(25deg, var(--primary-light) 0%, var(--accent) 100%)',
+                  backgroundImage: space.imageUrls && space.imageUrls.length > 0 && space.imageUrls[0] && !space.imageUrls[0].startsWith('/images/')
+                    ? `url(${space.imageUrls[0]})`
+                    : 'linear-gradient(25deg, var(--primary-light) 0%, var(--accent) 100%)',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: 'var(--primary)',
                   position: 'relative'
                 }}>
-                  <CalendarDays size={48} style={{ opacity: 0.4 }} />
+                  {(!space.imageUrls || space.imageUrls.length === 0 || !space.imageUrls[0] || space.imageUrls[0].startsWith('/images/')) && (
+                    <CalendarDays size={48} style={{ opacity: 0.4 }} />
+                  )}
                   <span style={{
                     position: 'absolute',
                     top: '12px',

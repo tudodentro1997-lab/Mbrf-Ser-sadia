@@ -20,6 +20,7 @@ export default function AdminDashboard({ token, user }) {
   const [spaceRules, setSpaceRules] = useState('');
   const [spacePriceSocio, setSpacePriceSocio] = useState(0);
   const [spacePriceNao, setSpacePriceNao] = useState(100);
+  const [spaceImages, setSpaceImages] = useState('');
 
   // Estados de cadastro de sócio
   const [socioName, setSocioName] = useState('');
@@ -138,13 +139,18 @@ export default function AdminDashboard({ token, user }) {
     e.preventDefault();
     setLoading(true);
 
+    const imageUrlsArray = spaceImages
+      ? spaceImages.split(',').map(url => url.trim()).filter(url => url !== '')
+      : [];
+
     const payload = {
       name: spaceName,
       description: spaceDesc,
       capacity: Number(spaceCap),
       rules: spaceRules,
       priceSocio: Number(spacePriceSocio),
-      priceNaoSocio: Number(spacePriceNao)
+      priceNaoSocio: Number(spacePriceNao),
+      imageUrls: imageUrlsArray
     };
 
     try {
@@ -212,6 +218,12 @@ export default function AdminDashboard({ token, user }) {
     setSpaceRules(space.rules || '');
     setSpacePriceSocio(space.priceSocio);
     setSpacePriceNao(space.priceNaoSocio);
+    try {
+      const urls = Array.isArray(space.imageUrls) ? space.imageUrls : JSON.parse(space.imageUrls || '[]');
+      setSpaceImages(urls.join(', '));
+    } catch (e) {
+      setSpaceImages(space.imageUrls || '');
+    }
   };
 
   const resetSpaceForm = () => {
@@ -222,6 +234,7 @@ export default function AdminDashboard({ token, user }) {
     setSpaceRules('');
     setSpacePriceSocio(0);
     setSpacePriceNao(100);
+    setSpaceImages('');
   };
 
   // Cadastrar Sócio Individual
@@ -649,6 +662,15 @@ export default function AdminDashboard({ token, user }) {
                     style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>URLs das Imagens / Fotos (separadas por vírgula)</label>
+                <input 
+                  type="text" value={spaceImages} onChange={(e) => setSpaceImages(e.target.value)}
+                  placeholder="Ex: https://dominio.com/foto1.jpg, https://dominio.com/foto2.jpg"
+                  style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
